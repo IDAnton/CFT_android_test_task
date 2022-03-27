@@ -44,18 +44,22 @@ import java.util.List;
 
 @SuppressWarnings("SpellCheckingInspection")
 public class MainActivity extends Activity implements AdapterView.OnItemSelectedListener {
-    private TextView text, outText, updateText;
+    private TextView valuteNameText, outText, updateText;
     private EditText inputText;
-    private ArrayList<Valute> valutes = new ArrayList<>();
+    private ArrayList<Valute> valutes;
     private Spinner valutesSpiner;
     private ArrayAdapter<Valute> valutesAdapter;
-    private static final String KEY_CONNECTIONS = "valutes";
     private SharedPreferences.Editor editor;
     private Switch updateSwitch;
 
-    private Handler handler = new Handler();
+    private static SimpleDateFormat dateFormat;
 
-    private Runnable runnable = new Runnable() {
+    private static final String KEY_CONNECTIONS = "valutes";
+    private static final String url = "https://www.cbr-xml-daily.ru/daily_json.js";
+    private static final String digit_format = "#.###";
+
+    private final Handler handler = new Handler();
+    private final Runnable runnable = new Runnable() {
         @Override
         public void run() {
             if (updateSwitch.isChecked()) loadJSONFromURL();
@@ -63,23 +67,34 @@ public class MainActivity extends Activity implements AdapterView.OnItemSelected
         }
     };
 
-    @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
+    private void initWidgets(){
         updateSwitch = findViewById(R.id.updateSwitch);
         editor = getPreferences(MODE_PRIVATE).edit();
         inputText = findViewById(R.id.inputText);
         updateText = findViewById(R.id.textUpdateTime);
         outText = findViewById(R.id.outText);
-        text = findViewById(R.id.textView);
+        valuteNameText = findViewById(R.id.textView);
+    }
+
+    private void initUpdateButton(){
         Button buttonUpdate = findViewById(R.id.buttonUpdate);
-        getData();
+        buttonUpdate.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                loadJSONFromURL();
+            }
+        });
+    }
+
+    private void initSpiner(){
         valutesSpiner = findViewById(R.id.spinner);
         valutesAdapter = new ArrayAdapter<Valute>(this, R.layout.spinner_item, valutes);
         valutesSpiner.setAdapter(valutesAdapter);
         valutesAdapter.setDropDownViewResource(R.layout.spinner_item);
         valutesSpiner.setOnItemSelectedListener(this);
+    }
+
+    private void initKeyboard(){
         Keyboard keyboard = (Keyboard) findViewById(R.id.keyboard);
         inputText.setRawInputType(InputType.TYPE_CLASS_TEXT);
         inputText.setTextIsSelectable(true);
@@ -97,19 +112,22 @@ public class MainActivity extends Activity implements AdapterView.OnItemSelected
             @Override
             public void afterTextChanged(Editable editable) {}
         });
+    }
 
-
-        buttonUpdate.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                loadJSONFromURL();
-            }
-        });
-        handler.postDelayed(runnable, 5000);
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_main);
+        initWidgets();
+        initSpiner();
+        initKeyboard();
+        initUpdateButton();
+        getData();
+        handler.post(runnable);
+        valutes = new ArrayList<>();
     }
 
     private void  loadJSONFromURL(){
-        String url = "https://www.cbr-xml-daily.ru/daily_json.js";
         StringRequest stringRequest = new StringRequest(Request.Method.GET, url,
                 new Response.Listener< String>(){
                     @Override
@@ -145,41 +163,47 @@ public class MainActivity extends Activity implements AdapterView.OnItemSelected
     public void onItemSelected(AdapterView<?> parent, View view, int pos, long id) {
         valutesSpiner.setSelection(pos);
         Valute valute = (Valute) parent.getItemAtPosition(pos);
-        text.setText(valute.getName());
+        valuteNameText.setText(valute.getName());
         convert();
     }
 
-    public void onNothingSelected(AdapterView<?> parent) {}
+    public void onNothingSelected(AdapterView<?> parent) {
+        Log.d("spiner","nothing selected");
+    }
 
     public void convert(){
         try {
             Valute valute = (Valute) valutesSpiner.getSelectedItem();
             String value = inputText.getText().toString();
-            if (value.equals("")) outText.setText("0");
-            else {
-                double val = Double.parseDouble(value);
-                DecimalFormat format = new DecimalFormat("#.###");
-                outText.setText(String.valueOf(format.format(val / valute.getValue() * valute.getNominal())));
+            if (value.equals("")) {
+                outText.setText("0");
+                return;
             }
-        }catch(NumberFormatException e){}
+            double val = Double.parseDouble(value);
+            DecimalFormat format = new DecimalFormat(digit_format);
+            outText.setText(String.valueOf(format.format(val / valute.getValue() * valute.getNominal())));
+        }catch(NumberFormatException e) {
+            Log.d("keyboard", "incorrect number");
+        }
     }
 
     public void getData(){
         String json = getPreferences(MODE_PRIVATE).getString(KEY_CONNECTIONS, null);
         String time = getPreferences(MODE_PRIVATE).getString("time", null);
-        if (json == null) loadJSONFromURL();
-        else {
-            Type type = new TypeToken < List < Valute >> () {}.getType();
-            valutes = new Gson().fromJson(json, type);
-            updateText.setText(time);
+        if (json == null) {
+            loadJSONFromURL();
+            return;
         }
+        Type type = new TypeToken < List < Valute >> () {}.getType();
+        valutes = new Gson().fromJson(json, type);
+        updateText.setText(time);
     }
 
     public void saveData(){
         String s = new Gson().toJson(valutes);
         editor.putString(KEY_CONNECTIONS, s);
-        SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss");
-        String time =  new Gson().toJson(sdf.format(Calendar.getInstance().getTime()));
+        dateFormat = new SimpleDateFormat("HH:mm:ss");
+        String time =  new Gson().toJson(dateFormat.format(Calendar.getInstance().getTime()));
         updateText.setText(time);
         editor.putString("time", time);
         editor.commit();
