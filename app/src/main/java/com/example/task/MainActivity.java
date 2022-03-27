@@ -59,7 +59,7 @@ public class MainActivity extends Activity implements AdapterView.OnItemSelected
         @Override
         public void run() {
             if (updateSwitch.isChecked()) loadJSONFromURL();
-            handler.postDelayed(this,10000);
+            handler.postDelayed(this, 5000);
         }
     };
 
@@ -84,6 +84,7 @@ public class MainActivity extends Activity implements AdapterView.OnItemSelected
         inputText.setRawInputType(InputType.TYPE_CLASS_TEXT);
         inputText.setTextIsSelectable(true);
         inputText.setShowSoftInputOnFocus(false);
+        inputText.setFocusable(false);
         InputConnection ic = inputText.onCreateInputConnection(new EditorInfo());
         keyboard.setInputConnection(ic);
         inputText.addTextChangedListener(new TextWatcher() {
@@ -104,7 +105,7 @@ public class MainActivity extends Activity implements AdapterView.OnItemSelected
                 loadJSONFromURL();
             }
         });
-        handler.postDelayed(runnable, 10000);
+        handler.postDelayed(runnable, 5000);
     }
 
     private void  loadJSONFromURL(){
@@ -153,9 +154,13 @@ public class MainActivity extends Activity implements AdapterView.OnItemSelected
     public void convert(){
         try {
             Valute valute = (Valute) valutesSpiner.getSelectedItem();
-            double val = Double.parseDouble(inputText.getText().toString());
-            DecimalFormat format = new DecimalFormat("#.###");
-            outText.setText(String.valueOf(format.format(val / valute.getValue() * valute.getNominal())));
+            String value = inputText.getText().toString();
+            if (value.equals("")) outText.setText("0");
+            else {
+                double val = Double.parseDouble(value);
+                DecimalFormat format = new DecimalFormat("#.###");
+                outText.setText(String.valueOf(format.format(val / valute.getValue() * valute.getNominal())));
+            }
         }catch(NumberFormatException e){}
     }
 

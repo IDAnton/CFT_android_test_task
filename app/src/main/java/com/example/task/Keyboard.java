@@ -96,8 +96,15 @@ public class Keyboard extends GridLayout implements View.OnClickListener {
 
         } else {
             String value = keyValues.get(v.getId());
-            CharSequence currentText = inputConnection.getExtractedText(new ExtractedTextRequest(), 0).text;
-            if(currentText.length() < 8) inputConnection.commitText(value, 1);
+            CharSequence currentText = inputConnection.getExtractedText(new ExtractedTextRequest(), 0).text + value.toString();
+            try {
+                if(currentText.length() < 8) {
+                    Double.parseDouble(String.valueOf(currentText));
+                    inputConnection.commitText(value, 1);
+                }
+            } catch (NumberFormatException e){
+                Log.e("Input", currentText.toString());
+            }
         }
     }
 
