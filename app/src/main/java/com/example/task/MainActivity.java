@@ -46,11 +46,12 @@ import java.util.List;
 public class MainActivity extends Activity implements AdapterView.OnItemSelectedListener {
     private TextView valuteNameText, outText, updateText;
     private EditText inputText;
-    private ArrayList<Valute> valutes;
     private Spinner valutesSpiner;
-    private ArrayAdapter<Valute> valutesAdapter;
     private SharedPreferences.Editor editor;
     private Switch updateSwitch;
+
+    private ArrayAdapter<Valute> valutesAdapter;
+    private ArrayList<Valute> valutes;
 
     private static SimpleDateFormat dateFormat;
 
@@ -88,6 +89,8 @@ public class MainActivity extends Activity implements AdapterView.OnItemSelected
 
     private void initSpiner(){
         valutesSpiner = findViewById(R.id.spinner);
+        valutes = new ArrayList<>();
+        getData();
         valutesAdapter = new ArrayAdapter<Valute>(this, R.layout.spinner_item, valutes);
         valutesSpiner.setAdapter(valutesAdapter);
         valutesAdapter.setDropDownViewResource(R.layout.spinner_item);
@@ -119,12 +122,10 @@ public class MainActivity extends Activity implements AdapterView.OnItemSelected
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         initWidgets();
+        initUpdateButton();
         initSpiner();
         initKeyboard();
-        initUpdateButton();
-        getData();
         handler.post(runnable);
-        valutes = new ArrayList<>();
     }
 
     private void  loadJSONFromURL(){
